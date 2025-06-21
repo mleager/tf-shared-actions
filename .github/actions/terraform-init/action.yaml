@@ -4,8 +4,7 @@ description: 'Performs Terraform Init with S3 Backend'
 inputs:
   bucket:
     description: 'S3 backend bucket'
-    required: false
-    default: 'tf-state-8864'
+    required: true
   key:
     description: 'S3 backend key'
     required: true
