@@ -1,0 +1,32 @@
+name: 'Terraform Init Setup'
+description: 'Performs Terraform Init with S3 Backend'
+
+inputs:
+  bucket:
+    description: 'S3 backend bucket'
+    required: false
+    default: 'tf-state-8864'
+  key:
+    description: 'S3 backend key'
+    required: true
+  region:
+    description: 'AWS region'
+    required: true
+
+outputs:
+  key:
+    description: 'S3 backend key used for Terraform State'
+    value: ${{ inputs.key }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Terraform Init
+      run: |
+        terraform init \
+          -backend-config="bucket=${{ inputs.bucket }}" \
+          -backend-config="key=${{ inputs.key }}" \
+          -backend-config="region=${{ inputs.region }}" \
+          -backend-config="encrypt=true" \
+          -backend-config="use_lockfile=true"
+
