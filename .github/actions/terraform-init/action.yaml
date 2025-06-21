@@ -29,5 +29,6 @@ runs:
           -backend-config="region=${{ inputs.region }}" \
           -backend-config="encrypt=true" \
           -backend-config="use_lockfile=true"
+      working-directory: ./terraform
       shell: bash
 

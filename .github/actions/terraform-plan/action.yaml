@@ -51,6 +51,7 @@ runs:
 
     - name: Terraform Format Check
       run: terraform fmt -check
+      working-directory: ./terraform
       shell: bash
 
     - name: Terraform Init with S3 Backend
@@ -65,13 +66,16 @@ runs:
 
     - name: Terraform Validate
       run: terraform validate
+      working-directory: ./terraform
       shell: bash
 
     - name: Terraform Plan (Binary)
       run: terraform plan -var-file=${{ inputs.var_file }} -out=tfplan
+      working-directory: ./terraform
       shell: bash
 
     - name: Terraform Show (Readable Plan to plan.txt)
       run: terraform show -no-color tfplan | tee plan.txt
+      working-directory: ./terraform
       shell: bash
 
