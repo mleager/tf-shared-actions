@@ -20,6 +20,12 @@ inputs:
     description: 'Terraform version'
     required: false
     default: '1.12.1'
+  aws_access_key_id:
+    required: true
+    description: 'AWS access key ID'
+  aws_secret_access_key:
+    required: true
+    description: 'AWS secret access key'
 
 outputs:
   key:
@@ -39,12 +45,13 @@ runs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-access-key-id: ${{ inputs.aws_access_key_id }}
+        aws-secret-access-key: ${{ inputs.aws_secret_access_key }}
         aws-region: ${{ inputs.region }}
 
     - name: Terraform Format Check
       run: terraform fmt -check
+      shell: bash
 
     - name: Terraform Init with S3 Backend
       run: |
@@ -54,13 +61,17 @@ runs:
           -backend-config="region=${{ inputs.region }}" \
           -backend-config="encrypt=true" \
           -backend-config="use_lockfile=true"
+      shell: bash
 
     - name: Terraform Validate
       run: terraform validate
+      shell: bash
 
     - name: Terraform Plan (Binary)
       run: terraform plan -var-file=${{ inputs.var_file }} -out=tfplan
+      shell: bash
 
     - name: Terraform Show (Readable Plan to plan.txt)
       run: terraform show -no-color tfplan | tee plan.txt
+      shell: bash
 
