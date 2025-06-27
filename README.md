@@ -1,51 +1,104 @@
 # Github Composite Action
 
-Create a new Repo: `tf-shared-actions`
+Global Repo for composite actions: `tf-shared-actions`
 
 ```
 tf-shared-actions/
 └── .github/
     └── actions/
+        └── terraform-init/
+        |        └── action.yaml
         └── terraform-plan/
-            └── action.yaml
+        |        └── action.yaml
+        └── terraform-apply/
+        |        └── action.yaml
+        └── terraform-destroy/
+        |        └── action.yaml
+        └── s3-deploy/
+                 └── action.yaml
 ```
 
-## What it Does
+## Available Actions:
 
-1. Setup Terraform action
+**terraform-init**
 
-2. Configure AWS action
+Single Step action
+- sets up init with S3 backend
 
-3. Format
+Required inputs:
+- bucket
+- key
+- region
 
-4. Init with configured S3 Backend
+------------------------------------------------------------------------------------------
 
-5. Validate
+**terraform-plan**
 
-6. Plan
+Multi-step action
+- aws-configure
+- terraform fmt, init with s3 backend, validate, plan
+- post PR comment
 
-Example workflow using the action:
+Optional inputs:
+- var file
+- tf version
+- make pr comment (boolean)
+- github token (for PR comment)
 
-```terraform
-jobs:
-  terraform:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./terraform
-    steps:
-      - name: Terraform Plan Setup
-        uses: mleager/tf-shared-actions/.github/actions/terraform-plan@main
-        with:
-          bucket: tf-state-8864
-          key: tf-s3-global-state/terraform.tfstate
-          region: ${{ vars.AWS_REGION }}
-          var_file: terraform.tfvars.development
+------------------------------------------------------------------------------------------
 
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main'
-        run: terraform apply -var-file=terraform.tfvars.development -auto-approve
+**terraform-apply**
+
+Multi-step Action
+- aws-configure
+- terraform init, validate, apply
+- post Commit comment
+
+Same inputs as terraform-plan
+
+------------------------------------------------------------------------------------------
+
+**terraform-destroy**
+
+Multi-step Action
+- aws-configure
+- terraform init, destroy
+- post Commit comment
+
+Same inputs as terraform-plan and terraform-apply
+
+------------------------------------------------------------------------------------------
+
+**s3-deploy**
+
+Multi-step Action
+- setup-node
+- npm install && npm run build
+- aws-configure
+- aws s3 sync
+- aws cloudfront create-invalidation
+
+Optional inputs:
+- build directory
+- build command
+- distribution id
+
+Example of getting distribution id for cloudfront (assuming outputs.tf contains cloudfront_distribution_id):
+```yaml
+- name: Terraform Apply
+  uses: mleager/tf-shared-actions/.github/actions/terraform-apply.yaml@main
+    ...
+- name: Get Distribution ID for Cloudfront (Optional)
+  id: tf-outputs
+  run: |
+    DIST_ID=$(terraform output -raw cloudfront_distribution_id)
+    echo "dist_id=$DIST_ID" >> $GITHUB_OUTPUT
+- name: Deploy S3
+  uses: mleager/tf-shared-action/.github/actions/s3-deploy.yaml@main
+    ...
 ```
+
+------------------------------------------------------------------------------------------
 
 Pros:
 
@@ -59,62 +112,4 @@ Cons:
 
 - not modular
 
-
-
-## Potential Issues
-
-This composite action may being doing too much.
-
-Perhaps its better if the composite action only performs the "terraform init -backend-config=..."  
-for the S3 Backend setup.
-
-
-**Potential Solution**
-
-Create another composite action that only has the "terraform init" portion
-
-Example:
-```terraform
-jobs:
-  terraform:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./terraform
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ inputs.tf_version }}
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ inputs.region }}
-
-    - name: Terraform Format Check
-      run: terraform fmt -check
-
-    - name: Terraform Validate
-      run: terraform validate
-
-    - name: Terraform Init
-      uses: mleager/tf-shared-actions/.github/actions/terraform-plan@main
-      with:
-        bucket: tf-state-8864
-        key: tf-s3-global-state/terraform.tfstate
-        region: ${{ vars.AWS_REGION }}
-        var_file: terraform.tfvars.development
-
-    - name: Terraform Plan
-      run: terraform plan -var-file=${{ inputs.var_file }}
-
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main'
-        run: terraform apply -var-file=terraform.tfvars.development -auto-approve
-```
 
