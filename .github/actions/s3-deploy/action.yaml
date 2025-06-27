@@ -21,6 +21,11 @@ inputs:
     required: false
     description: "Optional CloudFront distribution ID to invalidate"
 
+  aws_access_key_id:
+    required: true
+  aws_secret_access_key:
+    required: true
+
 secrets:
   aws_access_key_id:
     required: true
