@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       content: read
-      pull_requests: write
+      pull-requests: write
     defaults:
       run:
         working-directory: ./terraform
