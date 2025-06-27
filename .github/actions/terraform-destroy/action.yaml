@@ -108,7 +108,6 @@ runs:
         github-token: ${{ inputs.github_token }}
         script: |
           const fs = require('fs');
-          const core = require('@actions/core');
           const summary = fs.readFileSync('./terraform/destroy_summary.txt', 'utf8');
           const exitCode = parseInt(process.env.EXIT_CODE);
           const status = exitCode === 0 ? "✅ Success" : "❌ Failure";
