@@ -27,7 +27,6 @@ jobs:
           region: ${{ env.AWS_REGION }}
           var_file: ${{ env.VAR_FILE }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-        secrets:
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
@@ -43,7 +42,6 @@ jobs:
           bucket: ${{ env.S3_BUCKET }}
           region: ${{ env.AWS_REGION }}
           distribution_id: ${{ steps.tf-outputs.outputs.dist_id }}
-        secrets:
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
