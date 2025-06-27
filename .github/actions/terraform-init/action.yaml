@@ -3,14 +3,14 @@ description: 'Performs Terraform Init with S3 Backend'
 
 inputs:
   bucket:
+    required: true
     description: 'S3 backend bucket'
-    required: true
   key:
+    required: true
     description: 'S3 backend key'
-    required: true
   region:
-    description: 'AWS region'
     required: true
+    description: 'AWS region'
 
 outputs:
   key:

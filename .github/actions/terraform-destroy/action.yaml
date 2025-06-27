@@ -1,0 +1,126 @@
+name: "Terraform Destroy"
+description: "Destroys Terraform-managed infrastructure with confirmation and commit comment"
+
+inputs:
+  bucket:
+    required: false
+    default: "tf-state-8864"
+    description: "S3 backend bucket"
+  key:
+    required: true
+    description: "S3 backend key"
+  region:
+    required: true
+    description: "AWS region"
+  var_file:
+    required: false
+    default: "terraform.tfvars.development"
+    description: "Terraform var file"
+  tf_version:
+    required: false
+    default: "1.12.1"
+    description: "Terraform version"
+  confirm_destroy:
+    required: true
+    description: 'User must type "DESTROY" to proceed'
+
+  # Set input to true and add github_token to post a Commit Comment
+  make_commit_comment:
+    required: false
+    default: "true"
+    description: "Whether to post a commit comment"
+  github_token:
+    required: false
+    description: "GitHub token for commit comment"
+
+secrets:
+  aws_access_key_id:
+    required: true
+    description: "AWS access key ID"
+  aws_secret_access_key:
+    required: true
+    description: "AWS secret access key"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.tf_version }}
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.aws_access_key_id }}
+        aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
+        aws-region: ${{ inputs.region }}
+
+    - name: Terraform Init
+      run: |
+        terraform init \
+          -backend-config="bucket=${{ inputs.bucket }}" \
+          -backend-config="key=${{ inputs.key }}" \
+          -backend-config="region=${{ inputs.region }}" \
+          -backend-config="encrypt=true" \
+          -backend-config="use_lockfile=true"
+      working-directory: ./terraform
+      shell: bash
+
+    - name: Confirm Destroy
+      if: ${{ inputs.confirm_destroy != 'DESTROY' }}
+      run: |
+        echo "Destroy action was not confirmed. To destroy resources, you must type DESTROY in the confirmation input."
+        exit 1
+      shell: bash
+
+    - name: Terraform Destroy
+      id: destroy
+      run: |
+        terraform destroy -auto-approve -var-file=${{ inputs.var_file }} | tee destroy_output.txt
+        echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+      working-directory: ./terraform
+      shell: bash
+      continue-on-error: true
+
+    - name: Capture Destroy Summary
+      run: |
+        SUMMARY=$(grep -A5 "Destroy complete!" destroy_output.txt | tail -n +2 || echo "No matching summary found.")
+        echo "$SUMMARY" > destroy_summary.txt
+      working-directory: ./terraform
+      shell: bash
+
+    - name: Commit Comment (Destroy)
+      if: ${{ inputs.make_commit_comment == 'true' }}
+      uses: actions/github-script@v6
+      env:
+        EXIT_CODE: ${{ steps.destroy.outputs.exit_code }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const fs = require('fs');
+          const core = require('@actions/core');
+          const summary = fs.readFileSync('./terraform/destroy_summary.txt', 'utf8');
+          const exitCode = parseInt(process.env.EXIT_CODE);
+          const status = exitCode === 0 ? "✅ Success" : "❌ Failure";
+
+          await github.rest.repos.createCommitComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha,
+            body: `### Terraform Destroy: ${status}
+
+            <details><summary>Show Summary</summary>
+
+            \`\`\`
+            ${summary}
+            \`\`\`
+            </details>`
+          });
+
+          if (exitCode !== 0) {
+            core.setFailed("Terraform destroy failed");
+          }
+

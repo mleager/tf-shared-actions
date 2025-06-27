@@ -1,0 +1,77 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  STATE_BUCKET: tf-state-bucket
+  PROJECT_NAME: tf-project
+  AWS_REGION: us-east-1
+  VAR_FILE: terraform.tfvars.development
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    permissions:
+      content: read
+      pull_requests: write
+    defaults:
+      run:
+        working-directory: ./terraform
+    steps:
+    - name: Terraform Plan
+      id: terraform-plan
+      uses: mleager/tf-shared-actions/.github/actions/terraform-plan@main
+      with:
+        bucket: ${{ env.STATE_BUCKET }}
+        key: ${{ env.PROJECT_NAME }}/terraform.tfstate
+        region: ${{ env.AWS_REGION }}
+        var_file: ${{ env.VAR_FILE }}
+        make_pr_comment: true
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+      secrets:
+        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+# jobs:
+#   terraform:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Terraform Plan Setup
+#         id: terraform-plan
+#         uses: mleager/tf-shared-actions/.github/actions/terraform-plan@main
+#         with:
+#           bucket: ${{ env.STATE_BUCKET }}
+#           key: ${{ env.PROJECT_NAME }}/terraform.tfstate
+#           region: ${{ env.AWS_REGION }}
+#           var_file: ${{ env.VAR_FILE }}
+#         secrets:
+#           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#
+#       - name: Post Terraform Plan as PR Comment
+#         uses: actions/github-script@v6
+#         env:
+#           PLAN: ${{ steps.terraform-plan.outputs.plan }}
+#         with:
+#           github-token: ${{ secrets.GITHUB_TOKEN }}
+#           script: |
+#             const plan = Buffer.from(process.env.PLAN, 'base64').toString('utf8');
+#
+#             await github.rest.issues.createComment({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               issue_number: context.issue.number,
+#               body: `## Terraform Plan
+#
+#               <details><summary>Show Plan</summary>
+#
+#               \`\`\`hcl
+#               ${plan}
+#               \`\`\`
+#
+#               </details>`
+#             });
+

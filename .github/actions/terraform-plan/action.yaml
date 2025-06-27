@@ -1,35 +1,46 @@
-name: 'Terraform Plan Setup'
-description: 'Performs Terraform setup, init, validate, plan with S3 backend'
+name: "Terraform Plan Setup"
+description: "Performs Terraform setup, init, validate, plan with S3 backend"
 
 inputs:
   bucket:
-    description: 'S3 backend bucket'
     required: false
-    default: 'tf-state-8864'
+    default: "tf-state-8864"
+    description: "S3 backend bucket"
   key:
-    description: 'S3 backend key'
     required: true
+    description: "S3 backend key"
   region:
-    description: 'AWS region'
     required: true
+    description: "AWS region"
   var_file:
-    description: 'Terraform var file'
     required: false
-    default: 'terraform.tfvars.development'
+    default: "terraform.tfvars.development"
+    description: "Terraform var file"
   tf_version:
-    description: 'Terraform version'
     required: false
-    default: '1.12.1'
+    default: "1.12.1"
+    description: "Terraform version"
+
+  # Set input to true and add github_token to post a PR Comment
+  make_pr_comment:
+    required: false
+    default: "true"
+    description: "Whether to post the plan output as a PR comment"
+  github_token:
+    required: false
+    description: "GitHub token required if posting a PR comment"
+
+secrets:
   aws_access_key_id:
     required: true
-    description: 'AWS access key ID'
+    description: "AWS access key ID"
   aws_secret_access_key:
     required: true
-    description: 'AWS secret access key'
+    description: "AWS secret access key"
 
 outputs:
   key:
-    description: 'S3 backend key used for Terraform State'
+    description: "S3 backend key used for Terraform State"
     value: ${{ inputs.key }}
 
 runs:
@@ -45,8 +56,8 @@ runs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ inputs.aws_access_key_id }}
-        aws-secret-access-key: ${{ inputs.aws_secret_access_key }}
+        aws-access-key-id: ${{ secrets.aws_access_key_id }}
+        aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
         aws-region: ${{ inputs.region }}
 
     - name: Terraform Format Check
@@ -62,6 +73,7 @@ runs:
           -backend-config="region=${{ inputs.region }}" \
           -backend-config="encrypt=true" \
           -backend-config="use_lockfile=true"
+      working-directory: ./terraform
       shell: bash
 
     - name: Terraform Validate
@@ -78,4 +90,58 @@ runs:
       run: terraform show -no-color tfplan | tee plan.txt
       working-directory: ./terraform
       shell: bash
+
+    - name: Export plan.txt as output
+      id: export-plan
+      run: |
+        PLAN=$(cat plan.txt | base64 -w 0)
+        echo "plan=$PLAN" >> $GITHUB_OUTPUT
+      working-directory: ./terraform
+      shell: bash
+
+    - name: Post Terraform Plan PR Comment
+      if: ${{ inputs.make_pr_comment == 'true' }}
+      uses: actions/github-script@v6
+      env:
+        PLAN: ${{ steps.export-plan.outputs.plan }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const plan = Buffer.from(process.env.PLAN, 'base64').toString('utf8');
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const botComment = comments.find(comment => {
+            return comment.user.type === 'Bot' && comment.body.includes('Terraform Plan');
+          });
+
+          const output = `## Terraform Plan
+
+          <details><summary>Show Plan</summary>
+
+          \`\`\`hcl
+          ${plan}
+          \`\`\`
+
+          </details>`;
+
+          if (botComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: output
+            });
+          } else {
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+          }
 

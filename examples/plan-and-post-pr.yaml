@@ -1,0 +1,40 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+
+env:
+  STATE_BUCKET: tf-state-bucket
+  PROJECT_NAME: tf-project
+  AWS_REGION: us-east-1
+  VAR_FILE: terraform.tfvars.development
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    permissions:
+      content: read
+      pull_requests: write
+    defaults:
+      run:
+        working-directory: ./terraform
+    steps:
+      - name: Terraform Plan Setup
+        id: terraform-plan
+        uses: mleager/tf-shared-actions/.github/actions/terraform-plan@main
+        with:
+          bucket: ${{ env.STATE_BUCKET }}
+          key: ${{ env.PROJECT_NAME }}/terraform.tfstate
+          region: ${{ env.AWS_REGION }}
+          var_file: ${{ env.VAR_FILE }}
+          make_pr_comment: false
+        secrets:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Post PR Comment
+        uses: mleager/tf-shared-actions/.github/actions/post-pr-comment@main
+        with:
+          plan: ${{ steps.terraform-plan.outputs.plan }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
