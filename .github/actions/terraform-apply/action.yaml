@@ -96,7 +96,6 @@ runs:
       with:
         github-token: ${{ inputs.github_token }}
         script: |
-          const core = require('@actions/core');
           const status = parseInt(process.env.STATUS);
           const isSuccess = status === 0;
           const message = isSuccess
