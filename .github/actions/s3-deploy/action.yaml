@@ -47,8 +47,9 @@ runs:
   steps:
     - uses: actions/checkout@v4
 
-    - name: Setup OIDC Role Name
+    - name: Setup OIDC Role Name (Apply Permissions)
       run: echo "OIDC_ROLE=oidc-${{ inputs.project_name }}-${{ inputs.environment }}-apply" >> $GITHUB_ENV
+      shell: bash
 
     - name: Setup Node.js
       uses: actions/setup-node@v4

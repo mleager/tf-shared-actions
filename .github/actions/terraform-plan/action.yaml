@@ -61,6 +61,7 @@ runs:
 
     - name: Setup OIDC Role Name (Plan & Destroy Permissions)
       run: echo "OIDC_ROLE=oidc-${{ inputs.project_name }}-${{ inputs.environment }}-plan" >> $GITHUB_ENV
+      shell: bash
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3

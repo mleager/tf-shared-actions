@@ -59,8 +59,9 @@ runs:
   steps:
     - uses: actions/checkout@v4
 
-    - name: Set OIDC Role Name (Destroy Permissions)
+    - name: Setup OIDC Role Name (Destroy Permissions)
       run: echo "OIDC_ROLE=oidc-${{ inputs.project_name }}-${{ inputs.environment }}-plan" >> $GITHUB_ENV
+      shell: bash
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
