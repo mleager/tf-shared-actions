@@ -2,6 +2,15 @@ name: "Terraform Destroy"
 description: "Destroys Terraform-managed infrastructure with confirmation and commit comment"
 
 inputs:
+  # Create OIDC Role Name
+  project_name:
+    required: true
+    description: "Name of the Terraform project"
+  environment:
+    required: true
+    description: "Environment (e.g., development, staging, production)"
+
+  # S3 Backend Configuration
   bucket:
     required: false
     default: "tf-state-8864"
@@ -12,6 +21,8 @@ inputs:
   region:
     required: true
     description: "AWS region"
+
+  # Terraform Variables
   var_file:
     required: false
     default: "terraform.tfvars.development"
@@ -20,6 +31,8 @@ inputs:
     required: false
     default: "1.12.1"
     description: "Terraform version"
+
+  # User Input for Destroy Confirmation
   confirm_destroy:
     required: true
     description: 'User must type "DESTROY" to proceed'
@@ -46,6 +59,9 @@ runs:
   steps:
     - uses: actions/checkout@v4
 
+    - name: Set OIDC Role Name (Destroy Permissions)
+      run: echo "OIDC_ROLE=oidc-${{ inputs.project_name }}-${{ inputs.environment }}-plan" >> $GITHUB_ENV
+
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
@@ -54,7 +70,7 @@ runs:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::{{ inputs.aws_account_id }}:role/${{ inputs.oidc_role }}-plan
+        role-to-assume: arn:aws:iam::{{ inputs.aws_account_id }}:role/${{ env.OIDC_ROLE }}
         aws-region: ${{ inputs.region }}
 
     - name: Terraform Format Check

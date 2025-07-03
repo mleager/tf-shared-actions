@@ -2,12 +2,23 @@ name: "S3 React App Deploy"
 description: "Build and deploy React app to S3 and optionally invalidate CloudFront"
 
 inputs:
+  # Create OIDC Role Name
+  project_name:
+    required: true
+    description: "Name of the project"
+  environment:
+    required: true
+    description: "Environment (e.g., development, staging, production)"
+
+  # S3 Backend Configuration
   bucket:
     required: true
     description: "S3 bucket to deploy to"
   region:
     required: true
     description: "AWS region"
+
+  # React App Configuration
   dist_dir:
     required: false
     default: "dist"
@@ -17,6 +28,7 @@ inputs:
     default: "npm run build"
     description: "Command to build the React app"
 
+  # Cloudfront Configuration
   distribution_id:
     required: false
     description: "Optional CloudFront distribution ID to invalidate"
@@ -35,6 +47,9 @@ runs:
   steps:
     - uses: actions/checkout@v4
 
+    - name: Setup OIDC Role Name
+      run: echo "OIDC_ROLE=oidc-${{ inputs.project_name }}-${{ inputs.environment }}-apply" >> $GITHUB_ENV
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -51,7 +66,7 @@ runs:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.oidc_role }}-apply
+        role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ env.OIDC_ROLE }}
         aws-region: ${{ inputs.region }}
 
     - name: Upload to S3
