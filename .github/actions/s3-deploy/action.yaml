@@ -21,16 +21,14 @@ inputs:
     required: false
     description: "Optional CloudFront distribution ID to invalidate"
 
-  aws_access_key_id:
+  # Github OIDC Setup
+  aws_account_id:
     required: true
-  aws_secret_access_key:
+    description: "AWS account ID"
+  oidc_role:
     required: true
+    description: "Github OIDC role name. [oidc-${{ environment }}-${{ repo-name}}-apply]"
 
-secrets:
-  aws_access_key_id:
-    required: true
-  aws_secret_access_key:
-    required: true
 
 runs:
   using: "composite"
@@ -53,8 +51,7 @@ runs:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ inputs.aws_access_key_id }}
-        aws-secret-access-key: ${{ inputs.aws_secret_access_key }}
+        role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.oidc_role }}-apply
         aws-region: ${{ inputs.region }}
 
     - name: Upload to S3

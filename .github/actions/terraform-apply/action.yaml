@@ -30,20 +30,13 @@ inputs:
     required: false
     description: "GitHub token required if posting a commit comment"
 
-  aws_access_key_id:
+  # Github OIDC Setup
+  aws_account_id:
     required: true
-    description: "AWS access key ID"
-  aws_secret_access_key:
+    description: "AWS account ID"
+  oidc_role:
     required: true
-    description: "AWS secret access key"
-
-secrets:
-  aws_access_key_id:
-    required: true
-    description: "AWS access key ID"
-  aws_secret_access_key:
-    required: true
-    description: "AWS secret access key"
+    description: "Github OIDC role name. [oidc-${{ environment }}-${{ repo-name}}-apply]"
 
 runs:
   using: "composite"
@@ -58,9 +51,13 @@ runs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ inputs.aws_access_key_id }}
-        aws-secret-access-key: ${{ inputs.aws_secret_access_key }}
+        role-to-assume: arn:aws:iam::{{ inputs.aws_account_id }}:role/${{ inputs.oidc_role }}-apply
         aws-region: ${{ inputs.region }}
+
+    - name: Terraform Format Check
+      run: terraform fmt -check
+      working-directory: ./terraform
+      shell: bash
 
     - name: Terraform Init
       run: |
