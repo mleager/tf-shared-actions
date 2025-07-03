@@ -19,21 +19,27 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     defaults:
       run:
         working-directory: ${{ env.CONFIG_DIRECTORY }}
     steps:
-      - name: Terraform Destroy
-        uses: mleager/tf-shared-actions/.github/actions/terraform-destroy@main
-        with:
-          bucket: ${{ env.STATE_BUCKET }}
-          key: ${{ env.PROJECT_NAME }}/terraform.tfstate
-          region: ${{ env.AWS_REGION }}
-          var_file: ${{ env.VAR_FILE }}
-          confirm_destroy: ${{ github.event.inputs.confirm_destroy }}
-          make_commit_comment: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-        secrets:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    - name: Set OIDC Role Name
+      run: echo "OIDC_ROLE=oidc-${{ env.ENVIRONMENT }}-${{ github.event.repository.name}}" >> $GITHUB_ENV
+
+    - name: Terraform Destroy
+      uses: mleager/tf-shared-actions/.github/actions/terraform-destroy@main
+      with:
+        bucket: ${{ env.STATE_BUCKET }}
+        key: ${{ env.PROJECT_NAME }}/terraform.tfstate
+        region: ${{ env.AWS_REGION }}
+        var_file: ${{ env.VAR_FILE }}
+        confirm_destroy: ${{ github.event.inputs.confirm_destroy }}
+        make_commit_comment: true
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        oidc_role: ${{ env.OIDC_ROLE }}
+
+        # aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        # aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 

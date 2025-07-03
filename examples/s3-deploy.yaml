@@ -17,33 +17,41 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
-      - name: Terraform Apply
-        id: apply
-        uses: mleager/tf-shared-actions/.github/actions/terraform-apply@main
-        with:
-          bucket: ${{ env.STATE_BUCKET }}
-          key: ${{ env.PROJECT_NAME }}/terraform.tfstate
-          region: ${{ env.AWS_REGION }}
-          var_file: ${{ env.VAR_FILE }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-        secrets:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    - name: Set OIDC Role Name
+      run: echo "OIDC_ROLE=oidc-${{ env.ENVIRONMENT }}-${{ github.event.repository.name}}" >> $GITHUB_ENV
 
-      - name: Get CloudFront Distribution ID (Optional)
-        id: tf-outputs
-        run: |
-          DIST_ID=$(terraform -chdir=./terraform output -raw cloudfront_distribution_id 2>/dev/null || echo "")
-          echo "dist_id=$DIST_ID" >> $GITHUB_OUTPUT
+    - name: Terraform Apply
+      id: apply
+      uses: mleager/tf-shared-actions/.github/actions/terraform-apply@main
+      with:
+        bucket: ${{ env.STATE_BUCKET }}
+        key: ${{ env.PROJECT_NAME }}/terraform.tfstate
+        region: ${{ env.AWS_REGION }}
+        var_file: ${{ env.VAR_FILE }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        oidc_role: ${{ env.OIDC_ROLE }}
 
-      - name: Deploy React App to S3
-        uses: mleager/tf-shared-actions/.github/actions/s3-deploy@main
-        with:
-          bucket: ${{ env.S3_BUCKET }}
-          region: ${{ env.AWS_REGION }}
-          distribution_id: ${{ steps.tf-outputs.outputs.dist_id }}
-        secrets:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        # aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        # aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    - name: Get CloudFront Distribution ID (Optional)
+      id: tf-outputs
+      run: |
+        DIST_ID=$(terraform -chdir=./terraform output -raw cloudfront_distribution_id 2>/dev/null || echo "")
+        echo "dist_id=$DIST_ID" >> $GITHUB_OUTPUT
+
+    - name: Deploy React App to S3
+      uses: mleager/tf-shared-actions/.github/actions/s3-deploy@main
+      with:
+        bucket: ${{ env.S3_BUCKET }}
+        region: ${{ env.AWS_REGION }}
+        distribution_id: ${{ steps.tf-outputs.outputs.dist_id }}
+        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        oidc_role: ${{ env.OIDC_ROLE }}
+
+        # aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        # aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 

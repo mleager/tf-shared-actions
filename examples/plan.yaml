@@ -16,11 +16,15 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
       pull-requests: write
     defaults:
       run:
         working-directory: ./terraform
     steps:
+    - name: Set OIDC Role Name
+      run: echo "OIDC_ROLE=oidc-${{ env.ENVIRONMENT }}-${{ github.event.repository.name}}" >> $GITHUB_ENV
+
     - name: Terraform Plan
       id: terraform-plan
       uses: mleager/tf-shared-actions/.github/actions/terraform-plan@main
@@ -31,9 +35,11 @@ jobs:
         var_file: ${{ env.VAR_FILE }}
         make_pr_comment: true
         github_token: ${{ secrets.GITHUB_TOKEN }}
-      secrets:
-        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws_account_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        oidc_role: ${{ env.OIDC_ROLE }}
+
+        # aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        # aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
 # jobs:
 #   terraform:
