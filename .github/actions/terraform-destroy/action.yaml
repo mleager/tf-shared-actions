@@ -52,7 +52,7 @@ inputs:
     description: "AWS account ID"
   oidc_role:
     required: true
-    description: "Github OIDC role name. [oidc-${{ environment }}-${{ repo-name}}-plan]"
+    description: "Github OIDC role name. [oidc-repo-env-plan]"
 
 runs:
   using: "composite"
