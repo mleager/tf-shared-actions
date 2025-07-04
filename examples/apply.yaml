@@ -29,15 +29,17 @@ jobs:
       id: terraform-apply
       uses: mleager/tf-shared-actions/.github/actions/terraform-apply@main
       with:
+        create_oidc_role: true
+        # oidc_role: oidc-role-name
+        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         project_name: ${{ env.PROJECT_NAME }}
         environment: ${{ env.ENVIRONMENT }}
         bucket: ${{ env.STATE_BUCKET }}
         key: ${{ env.PROJECT_NAME }}/terraform.tfstate
         region: ${{ env.AWS_REGION }}
-        var_file: ${{ env.VAR_FILE }}
-        make_commit_comment: true
+        var_file: terraform.tfvars.${{ env.ENVIRONMENT }}
+        make_pr_comment: true
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        aws_account_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
 
 
 # name: Terraform Apply
