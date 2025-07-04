@@ -2,15 +2,29 @@ name: "S3 React App Deploy"
 description: "Build and deploy React app to S3 and optionally invalidate CloudFront"
 
 inputs:
+  # Specify OIDC Role Name or Create OIDC Role Name
+  create_oidc_role:
+    required: false
+    default: "true"
+    description: "Whether to create a new OIDC role or use an existing one"
+  oidc_role:
+    required: false
+    description: "Github OIDC role name. [oidc-repo-env-plan]"
+
+  # Github OIDC Setup
+  aws_account_id:
+    required: true
+    description: "AWS account ID"
+
   # Create OIDC Role Name
   project_name:
     required: true
-    description: "Name of the project"
+    description: "Project name"
   environment:
     required: true
-    description: "Environment (e.g., development, staging, production)"
+    description: "Environment (e.g., development, production)"
 
-  # S3 Backend Configuration
+  # S3 Bucket Configuration
   bucket:
     required: true
     description: "S3 bucket to deploy to"
@@ -33,22 +47,19 @@ inputs:
     required: false
     description: "Optional CloudFront distribution ID to invalidate"
 
-  # Github OIDC Setup
-  aws_account_id:
-    required: true
-    description: "AWS account ID"
-  oidc_role:
-    required: true
-    description: "Github OIDC role name. [oidc-repo-env-apply]"
-
-
 runs:
   using: "composite"
   steps:
     - uses: actions/checkout@v4
 
-    - name: Setup OIDC Role Name (Apply Permissions)
+    - name: Setup Default OIDC Role Name (Apply Permissions)
+      if: inputs.create_oidc_role == 'true' || inputs.create_oidc_role == 'false' && inputs.oidc_role == ''
       run: echo "OIDC_ROLE=oidc-${{ inputs.project_name }}-${{ inputs.environment }}-apply" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Use Provided OIDC Role Name
+      if: inputs.create_oidc_role != 'true' && inputs.oidc_role != ''
+      run: echo "OIDC_ROLE=${{ inputs.oidc_role }}" >> $GITHUB_ENV
       shell: bash
 
     - name: Setup Node.js

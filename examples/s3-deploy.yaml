@@ -10,6 +10,7 @@ env:
   PROJECT_NAME: tf-project
   AWS_REGION: us-east-1
   VAR_FILE: terraform.tfvars.development
+  ENVIRONMENT: development
   S3_BUCKET: react-app-bucket
 
 jobs:
@@ -19,23 +20,25 @@ jobs:
       contents: write
       id-token: write
     steps:
-    - name: Set OIDC Role Name
-      run: echo "OIDC_ROLE=oidc-${{ env.ENVIRONMENT }}-${{ github.event.repository.name}}" >> $GITHUB_ENV
+    # - name: Set OIDC Role Name
+    #   run: echo "OIDC_ROLE=oidc-${{ github.event.repository.name }}-${{ env.ENVIRONMENT }}-apply" >> $GITHUB_ENV
 
     - name: Terraform Apply
       id: apply
       uses: mleager/tf-shared-actions/.github/actions/terraform-apply@main
       with:
+        create_oidc_role: true
+        # oidc_role: oidc-role-name
+        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        project_name: ${{ env.PROJECT_NAME }}
+        environment: ${{ env.ENVIRONMENT }}
         bucket: ${{ env.STATE_BUCKET }}
         key: ${{ env.PROJECT_NAME }}/terraform.tfstate
         region: ${{ env.AWS_REGION }}
-        var_file: ${{ env.VAR_FILE }}
+        var_file: terraform.tfvars.${{ env.ENVIRONMENT }}
+        make_pr_comment: true
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
-        oidc_role: ${{ env.OIDC_ROLE }}
-
-        # aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        # aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        # oidc_role: ${{ env.OIDC_ROLE }}
 
     - name: Get CloudFront Distribution ID (Optional)
       id: tf-outputs
@@ -46,12 +49,13 @@ jobs:
     - name: Deploy React App to S3
       uses: mleager/tf-shared-actions/.github/actions/s3-deploy@main
       with:
-        bucket: ${{ env.S3_BUCKET }}
+        create_oidc_role: true
+        # oidc_role: oidc-role-name
+        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        project_name: ${{ env.PROJECT_NAME }}
+        environment: ${{ env.ENVIRONMENT }}
+        bucket: ${{ env.STATE_BUCKET }}
         region: ${{ env.AWS_REGION }}
         distribution_id: ${{ steps.tf-outputs.outputs.dist_id }}
-        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
-        oidc_role: ${{ env.OIDC_ROLE }}
-
-        # aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        # aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        # oidc_role: ${{ env.OIDC_ROLE }}
 

@@ -1,14 +1,56 @@
 name: "Terraform Apply"
 description: "Initializes and applies Terraform using S3 backend"
 
+# This Composite Action handles Terraform Plan operations with AWS OIDC authentication
+#
+# OIDC Role Behavior:
+# - When create_oidc_role is 'true' (default): Uses a constructed role name in the format
+#   'oidc-{project_name}-{environment}-plan'
+# - When create_oidc_role is 'false' and oidc_role is provided: Uses the specified oidc_role
+# - When create_oidc_role is 'false' but no oidc_role is provided: Falls back to the constructed
+#   role name format as a default
+#
+# The action performs the following steps:
+# 1. Sets up AWS credentials using OIDC authentication
+# 2. Runs terraform init with S3 backend configuration
+# 3. Validates and plans the Terraform configuration
+# 4. Optionally posts the plan as a PR comment#
+#
+# Example Usage:
+# - name: Terraform Plan
+#   uses: mleager/tf-shared-actions/.github/actions/terraform-plan@main
+#   with:
+#     create_oidc_role: true
+#     oidc_role: "github-actions-oidc-role"
+#     aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+#     project_name: "my-project"
+#     environment: "plan"
+#     s3_bucket: "my-terraform-state-bucket"
+#     key: "tf-state/terraform.tfstate"
+#     region: "us-west-2"
+
 inputs:
+  # Specify OIDC Role Name or Create OIDC Role Name
+  create_oidc_role:
+    required: false
+    default: "true"
+    description: "Whether to create a new OIDC role or use an existing one"
+  oidc_role:
+    required: false
+    description: "Github OIDC role name. [oidc-repo-env-plan]"
+
+  # Github OIDC Setup
+  aws_account_id:
+    required: true
+    description: "AWS account ID"
+
   # Create OIDC Role Name
   project_name:
     required: true
     description: "Project name"
   environment:
     required: true
-    description: "Environment (e.g., development, staging, production)"
+    description: "Environment (e.g., development, production)"
 
   # S3 Backend Configuration
   bucket:
@@ -41,21 +83,19 @@ inputs:
     required: false
     description: "GitHub token required if posting a commit comment"
 
-  # Github OIDC Setup
-  aws_account_id:
-    required: true
-    description: "AWS account ID"
-  oidc_role:
-    required: true
-    description: "Github OIDC role name. [oidc-repo-env-apply]"
-
 runs:
   using: "composite"
   steps:
     - uses: actions/checkout@v4
 
-    - name: Setup OIDC Role Name (Apply Permissions)
+    - name: Setup Default OIDC Role Name (Apply Permissions)
+      if: inputs.create_oidc_role == 'true' || inputs.create_oidc_role == 'false' && inputs.oidc_role == ''
       run: echo "OIDC_ROLE=oidc-${{ inputs.project_name }}-${{ inputs.environment }}-apply" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Use Provided OIDC Role Name
+      if: inputs.create_oidc_role != 'true' && inputs.oidc_role != ''
+      run: echo "OIDC_ROLE=${{ inputs.oidc_role }}" >> $GITHUB_ENV
       shell: bash
 
     - name: Setup Terraform
@@ -66,7 +106,7 @@ runs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::{{ inputs.aws_account_id }}:role/${{ env.OIDC_ROLE }}
+        role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ env.OIDC_ROLE }}
         aws-region: ${{ inputs.region }}
 
     - name: Terraform Format Check
@@ -74,7 +114,7 @@ runs:
       working-directory: ./terraform
       shell: bash
 
-    - name: Terraform Init
+    - name: Terraform Init with S3 Backend
       run: |
         terraform init \
           -backend-config="bucket=${{ inputs.bucket }}" \
