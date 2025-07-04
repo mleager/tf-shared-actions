@@ -98,7 +98,7 @@ runs:
       run: echo "OIDC_ROLE=oidc-${{ inputs.project_name }}-${{ inputs.environment }}-plan" >> $GITHUB_ENV
       shell: bash
 
-    - name: Use Provided OIDC Role Name (Plan & Destroy Permissions)
+    - name: Use Provided OIDC Role Name
       if: inputs.create_oidc_role != 'true' && inputs.oidc_role != ''
       run: echo "OIDC_ROLE=${{ inputs.oidc_role }}" >> $GITHUB_ENV
       shell: bash
