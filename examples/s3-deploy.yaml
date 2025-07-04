@@ -54,8 +54,7 @@ jobs:
         aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         project_name: ${{ env.PROJECT_NAME }}
         environment: ${{ env.ENVIRONMENT }}
-        bucket: ${{ env.STATE_BUCKET }}
+        bucket: ${{ env.S3_BUCKET }}
         region: ${{ env.AWS_REGION }}
         distribution_id: ${{ steps.tf-outputs.outputs.dist_id }}
         # oidc_role: ${{ env.OIDC_ROLE }}
-
