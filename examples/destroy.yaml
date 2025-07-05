@@ -7,19 +7,24 @@ on:
         description: 'Type "DESTROY" to confirm resource destruction'
         required: true
 
-env:
-  CONFIG_DIRECTORY: ./terraform
-  STATE_BUCKET: tf-state-bucket
-  AWS_REGION: us-east-1
-  VAR_FILE: terraform.tfvars.development
-  ENVIRONMENT: development
+# env:
+#   CONFIG_DIRECTORY: ./terraform
+#   STATE_BUCKET: tf-state-bucket
+#   AWS_REGION: us-east-1
+#   VAR_FILE: terraform.tfvars.development
+#   ENVIRONMENT: development
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
-    environment: ${{ env.ENVIRONMENT }}
     env:
+      CONFIG_DIRECTORY: ./terraform
+      STATE_BUCKET: tf-state-bucket
+      AWS_REGION: us-east-1
+      VAR_FILE: terraform.tfvars.development
       PROJECT_NAME: ${{ github.event.repository.name }}
+      ENVIRONMENT: development
+    environment: ${{ env.ENVIRONMENT }}
     permissions:
       contents: write
       id-token: write
@@ -39,6 +44,6 @@ jobs:
         key: ${{ env.PROJECT_NAME }}/terraform.tfstate
         region: ${{ env.AWS_REGION }}
         var_file: terraform.tfvars.${{ env.ENVIRONMENT }}
-        make_pr_comment: true
+        make_commit_comment: true
         github_token: ${{ secrets.GITHUB_TOKEN }}
 

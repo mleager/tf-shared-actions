@@ -5,24 +5,29 @@ on:
     branches:
       - main
 
-env:
-  STATE_BUCKET: tf-state-bucket
-  PROJECT_NAME: tf-project
-  AWS_REGION: us-east-1
-  VAR_FILE: terraform.tfvars.development
-  ENVIRONMENT: development
-  S3_BUCKET: react-app-bucket
+# env:
+#   STATE_BUCKET: tf-state-bucket
+#   PROJECT_NAME: tf-project
+#   AWS_REGION: us-east-1
+#   VAR_FILE: terraform.tfvars.development
+#   ENVIRONMENT: development
+#   S3_BUCKET: react-app-bucket
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      STATE_BUCKET: tf-state-bucket
+      AWS_REGION: us-east-1
+      VAR_FILE: terraform.tfvars.development
+      PROJECT_NAME: ${{ github.event.repository.name }}
+      ENVIRONMENT: development
+      S3_BUCKET: react-app-bucket
+    environment: ${{ env.ENVIRONMENT }}
     permissions:
       contents: write
       id-token: write
     steps:
-    # - name: Set OIDC Role Name
-    #   run: echo "OIDC_ROLE=oidc-${{ github.event.repository.name }}-${{ env.ENVIRONMENT }}-apply" >> $GITHUB_ENV
-
     - name: Terraform Apply
       id: apply
       uses: mleager/tf-shared-actions/.github/actions/terraform-apply@main
@@ -38,7 +43,6 @@ jobs:
         var_file: terraform.tfvars.${{ env.ENVIRONMENT }}
         make_pr_comment: true
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        # oidc_role: ${{ env.OIDC_ROLE }}
 
     - name: Get CloudFront Distribution ID (Optional)
       id: tf-outputs
@@ -57,5 +61,4 @@ jobs:
         bucket: ${{ env.S3_BUCKET }}
         region: ${{ env.AWS_REGION }}
         distribution_id: ${{ steps.tf-outputs.outputs.dist_id }}
-        # oidc_role: ${{ env.OIDC_ROLE }}
 

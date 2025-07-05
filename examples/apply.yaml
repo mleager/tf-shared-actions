@@ -5,19 +5,24 @@ on:
     branches:
       - main
 
-env:
-  CONFIG_DIRECTORY: ./terraform
-  STATE_BUCKET: tf-state-bucket
-  AWS_REGION: us-east-1
-  VAR_FILE: terraform.tfvars.development
-  ENVIRONMENT: development
+# env:
+#   CONFIG_DIRECTORY: ./terraform
+#   STATE_BUCKET: tf-state-bucket
+#   AWS_REGION: us-east-1
+#   VAR_FILE: terraform.tfvars.development
+#   ENVIRONMENT: development
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
-    environment: ${{ env.ENVIRONMENT }}
     env:
+      CONFIG_DIRECTORY: ./terraform
+      STATE_BUCKET: tf-state-bucket
+      AWS_REGION: us-east-1
+      VAR_FILE: terraform.tfvars.development
       PROJECT_NAME: ${{ github.event.repository.name }}
+      ENVIRONMENT: development
+    environment: ${{ env.ENVIRONMENT }}
     permissions:
       contents: write
       id-token: write
@@ -38,73 +43,6 @@ jobs:
         key: ${{ env.PROJECT_NAME }}/terraform.tfstate
         region: ${{ env.AWS_REGION }}
         var_file: terraform.tfvars.${{ env.ENVIRONMENT }}
-        make_pr_comment: true
+        make_commit_comment: true
         github_token: ${{ secrets.GITHUB_TOKEN }}
 
-
-# name: Terraform Apply
-#
-# on:
-#   push:
-#     branches:
-#       - main
-#
-# env:
-#   STATE_BUCKET: tf-state-8864
-#   PROJECT_NAME: tf-s3-global-state
-#
-# jobs:
-#   terraform:
-#     runs-on: ubuntu-latest
-#     defaults:
-#       run:
-#         working-directory: ./terraform
-#     steps:
-#       - name: Terraform Plan Setup
-#         uses: mleager/tf-shared-actions/.github/actions/terraform-plan@main
-#         with:
-#           bucket: ${{ env.STATE_BUCKET }}
-#           key: ${{ env.PROJECT_NAME }}/terraform.tfstate
-#           region: ${{ vars.AWS_REGION }}
-#           var_file: terraform.tfvars.development
-#
-#       - name: Terraform Apply
-#         id: apply
-#         if: github.ref == 'refs/heads/main'
-#         run: |
-#           terraform apply -var-file=terraform.tfvars.development -auto-approve | tee apply_output.txt
-#           echo "exit_code=$?" >> $GITHUB_OUTPUT
-#
-#       - name: Check Terraform Apply Status
-#         if: steps.apply.outputs.exit_code != 0
-#         run: exit 1
-#
-#       - name: Post Terraform Apply Commit Comment
-#         if: github.ref == 'refs/heads/main'
-#         uses: actions/github-script@v6
-#         env:
-#           EXIT_CODE: ${{ steps.apply.outputs.exit_code }}
-#         with:
-#           github-token: ${{ secrets.GITHUB_TOKEN }}
-#           script: |
-#             const fs = require('fs');
-#             const applyOutput = fs.readFileSync('./terraform/apply_output.txt', 'utf8');
-#
-#             const exitCode = Number(process.env.EXIT_CODE);
-#             const status = exitCode === 0? '✅ Success' : '❌ Failure';
-#
-#             github.rest.repos.createCommitComment({
-#               owner: context.repo.owner,
-#               repo: context.repo.repo,
-#               commit_sha: context.sha,
-#               body: `## Terraform Apply ${status}
-#
-#               <details><summary>Show Output</summary>
-#
-#               \`\`\`
-#               ${applyOutput}
-#               \`\`\`
-#
-#               </details>`
-#             });
-#
