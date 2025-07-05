@@ -33,7 +33,7 @@ inputs:
   # Specify OIDC Role Name or Create OIDC Role Name
   create_oidc_role:
     required: false
-    default: "true"
+    default: "false"
     description: "Whether to create a new OIDC role or use an existing one"
   oidc_role:
     required: false
