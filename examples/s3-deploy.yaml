@@ -27,8 +27,8 @@ jobs:
       id: apply
       uses: mleager/tf-shared-actions/.github/actions/terraform-apply@main
       with:
-        create_oidc_role: true
-        # oidc_role: oidc-role-name
+        create_oidc_role: false
+        oidc_role: oidc-role-name
         aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         project_name: ${{ env.PROJECT_NAME }}
         environment: ${{ env.ENVIRONMENT }}
@@ -49,8 +49,8 @@ jobs:
     - name: Deploy React App to S3
       uses: mleager/tf-shared-actions/.github/actions/s3-deploy@main
       with:
-        create_oidc_role: true
-        # oidc_role: oidc-role-name
+        create_oidc_role: false
+        oidc_role: oidc-role-name
         aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         project_name: ${{ env.PROJECT_NAME }}
         environment: ${{ env.ENVIRONMENT }}
@@ -58,3 +58,4 @@ jobs:
         region: ${{ env.AWS_REGION }}
         distribution_id: ${{ steps.tf-outputs.outputs.dist_id }}
         # oidc_role: ${{ env.OIDC_ROLE }}
+
