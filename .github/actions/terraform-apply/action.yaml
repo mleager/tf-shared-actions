@@ -141,7 +141,7 @@ runs:
       continue-on-error: true
 
     - name: Post Commit Comment
-      if: ${{ inputs.make_commit_comment == 'true' }}
+      if: ${{ inputs.make_commit_comment == 'true' && github.event_name != 'workflow_dispatch' }}
       uses: actions/github-script@v6
       env:
         STATUS: ${{ steps.apply.outputs.status }}
