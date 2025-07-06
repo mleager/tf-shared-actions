@@ -154,7 +154,7 @@ runs:
       shell: bash
 
     - name: Post Terraform Plan PR Comment
-      if: ${{ inputs.make_pr_comment == 'true' }}
+      if: ${{ inputs.make_pr_comment == 'true' && github.event.pull_request }}
       uses: actions/github-script@v6
       env:
         PLAN: ${{ steps.export-plan.outputs.plan }}
