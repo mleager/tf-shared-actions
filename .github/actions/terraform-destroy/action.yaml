@@ -74,11 +74,6 @@ inputs:
     default: "1.12.1"
     description: "Terraform version"
 
-  # User Input for Destroy Confirmation
-  confirm_destroy:
-    required: true
-    description: 'User must type "DESTROY" to proceed'
-
   # Set input to true and add github_token to post a Commit Comment
   make_commit_comment:
     required: false
@@ -131,7 +126,7 @@ runs:
       shell: bash
 
     - name: Confirm Destroy
-      if: ${{ inputs.confirm_destroy != 'DESTROY' }}
+      if: ${{ github.event.inputs.confirm_destroy != 'DESTROY' }}
       run: |
         echo "Destroy action was not confirmed. To destroy resources, you must type DESTROY in the confirmation input."
         exit 1
